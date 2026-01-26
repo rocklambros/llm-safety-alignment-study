@@ -1,0 +1,27 @@
+# Core
+pandas>=2.0.0
+numpy>=1.24.0
+tqdm>=4.65.0
+requests>=2.31.0
+
+# AWS
+boto3>=1.34.0
+
+# HuggingFace
+huggingface_hub>=0.20.0
+datasets>=2.16.0
+
+# Toxicity Scoring
+detoxify>=0.5.2
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Network Analysis (xFakeSci)
+networkx>=3.2.0
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Testing
+pytest>=7.4.0

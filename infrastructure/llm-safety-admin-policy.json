@@ -1,0 +1,135 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "BedrockFullAccess",
+            "Effect": "Allow",
+            "Action": "bedrock:*",
+            "Resource": "*"
+        },
+        {
+            "Sid": "IAMRoleManagement",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:GetRole",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:GetRolePolicy",
+                "iam:PassRole"
+            ],
+            "Resource": "arn:aws:iam::*:role/BedrockModelImportRole"
+        },
+        {
+            "Sid": "S3BucketManagement",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteBucket",
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:PutBucketPolicy",
+                "s3:GetBucketPolicy",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::llm-safety-study-*",
+                "arn:aws:s3:::llm-safety-study-*/*"
+            ]
+        },
+        {
+            "Sid": "S3ListBuckets",
+            "Effect": "Allow",
+            "Action": "s3:ListAllMyBuckets",
+            "Resource": "*"
+        },
+        {
+            "Sid": "SNSTopicManagement",
+            "Effect": "Allow",
+            "Action": [
+                "sns:CreateTopic",
+                "sns:DeleteTopic",
+                "sns:Subscribe",
+                "sns:Unsubscribe",
+                "sns:Publish",
+                "sns:AddPermission",
+                "sns:RemovePermission",
+                "sns:GetTopicAttributes",
+                "sns:SetTopicAttributes",
+                "sns:ListTopics",
+                "sns:ListSubscriptionsByTopic"
+            ],
+            "Resource": "arn:aws:sns:*:*:llm-safety-study-*"
+        },
+        {
+            "Sid": "CloudWatchAlarmsManagement",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:DeleteAlarms",
+                "cloudwatch:DescribeAlarms",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "cloudwatch:ListMetrics",
+                "cloudwatch:SetAlarmState"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "CloudWatchLogs",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents",
+                "logs:StartQuery",
+                "logs:StopQuery",
+                "logs:GetQueryResults"
+            ],
+            "Resource": [
+                "arn:aws:logs:*:*:log-group:/aws/bedrock/*",
+                "arn:aws:logs:*:*:log-group:/aws/bedrock/*:*"
+            ]
+        },
+        {
+            "Sid": "EventBridgeRuleManagement",
+            "Effect": "Allow",
+            "Action": [
+                "events:PutRule",
+                "events:DeleteRule",
+                "events:DescribeRule",
+                "events:PutTargets",
+                "events:RemoveTargets",
+                "events:ListRules",
+                "events:ListTargetsByRule"
+            ],
+            "Resource": "arn:aws:events:*:*:rule/llm-safety-study-*"
+        },
+        {
+            "Sid": "CostExplorer",
+            "Effect": "Allow",
+            "Action": [
+                "ce:GetCostAndUsage",
+                "ce:GetCostForecast",
+                "ce:GetCostAndUsageWithResources"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "BudgetsView",
+            "Effect": "Allow",
+            "Action": "budgets:ViewBudget",
+            "Resource": "*"
+        },
+        {
+            "Sid": "STSIdentity",
+            "Effect": "Allow",
+            "Action": "sts:GetCallerIdentity",
+            "Resource": "*"
+        }
+    ]
+}
