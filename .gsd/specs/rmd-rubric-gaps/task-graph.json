@@ -1,0 +1,194 @@
+{
+  "feature": "rmd-rubric-gaps",
+  "version": "2.0",
+  "generated": "2026-03-06T00:00:00Z",
+  "total_tasks": 6,
+  "estimated_duration_minutes": 80,
+  "max_parallelization": 1,
+
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Insert EDA section into Rmd",
+      "description": "Add new '# Exploratory Data Analysis' section between Data/Methods and Statistical Methods. Load data_validated.rds ($data tibble), join with prompt_sample_25k.csv for source/target_group. Create 4 new echo=TRUE chunks: (1) load-eda: readRDS + join + str(), (2) eda-density: ggplot density of tox_score_base by family, (3) eda-prompt-counts: bar chart or kable of RTP vs ToxiGen counts with 13 target_group breakdown, (4) eda-base-rates: side-by-side bar chart of tox_binary_base mean per family. Add casual intro paragraph.",
+      "phase": "foundation",
+      "level": 1,
+      "dependencies": [],
+      "files": {
+        "create": [],
+        "modify": ["docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd"],
+        "read": ["analysis/data_validated.rds", "data/processed/prompt_sample_25k.csv", "analysis/02_eda.R"]
+      },
+      "verification": {
+        "command": "grep -c 'Exploratory Data Analysis' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd && grep -c 'load-eda\\|eda-density\\|eda-prompt-counts\\|eda-base-rates' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["r", "ggplot2", "rmarkdown"],
+      "consumers": ["TASK-002"],
+      "integration_test": null,
+      "context": "## Spec Context\nInsert between Data/Methods (currently line 43) and Statistical Methods (currently line 55). Data loading: `validated <- readRDS(\"../analysis/data_validated.rds\"); df <- validated$data` — this is a tibble with 75000 rows x 25 cols. Key cols: prompt_id, family (qwen3/llama31/mistral), tox_score_base (numeric), tox_binary_base (0/1). Join prompt metadata: `read_csv(\"../data/processed/prompt_sample_25k.csv\")` has prompt_id, source (rtp/toxigen), target_group (13 groups or NA for RTP). All new chunks must use echo=TRUE. Use ggplot2 (already loaded). Casual tone: 'Before running the tests, let's get a feel for what the data actually look like.'\n\n## Dependencies\nNone — first task. Existing setup chunk loads tidyverse, ggplot2, knitr, patchwork.\n\n## Data Columns (RDS $data)\nprompt_id, family, prompt_text, base_completion, aligned_completion, tox_score_base, tox_score_aligned, tox_binary_base, tox_binary_aligned, scorer, threshold\n\n## Prompt CSV Columns\nprompt_id, source, text, toxicity_source, target_group, stratum\n\n## ToxiGen Groups\nasian, black, chinese, jewish, latino, lgbtq, mental_dis, mexican, middle_east, muslim, native_american, physical_dis, women"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Insert Assumption Checks section into Rmd",
+      "description": "Add new '# Assumption Checks' section immediately before '# Results'. Create 3 subsections with echo=TRUE chunks: (2a) McNemar: compute discordant cell counts b and c from raw paired data per family, print b+c values, note >25 rule of thumb. (2b) Wilcoxon: compute d_i = tox_score_base - tox_score_aligned per family, plot density/histogram of d_i, comment on symmetry. (2c) Cochran: validate binary coding with table(), count NAs, confirm strict 0/1. Each subsection: one short paragraph + one code chunk.",
+      "phase": "core",
+      "level": 2,
+      "dependencies": ["TASK-001"],
+      "files": {
+        "create": [],
+        "modify": ["docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'Assumption Checks' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd && grep -c 'assume-mcnemar\\|assume-wilcoxon\\|assume-cochran' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 20,
+      "skills_required": ["r", "ggplot2", "rmarkdown", "statistics"],
+      "consumers": ["TASK-003"],
+      "integration_test": null,
+      "context": "## Spec Context\nInsert immediately before '# Results' section. Reuse the `df` object already loaded in TASK-001's load-eda chunk (75000-row tibble with tox_score_base, tox_score_aligned, tox_binary_base, tox_binary_aligned, family).\n\n### 2a McNemar\nDiscordant pairs: b = (tox_binary_base==1 & tox_binary_aligned==0), c = (tox_binary_base==0 & tox_binary_aligned==1). Compute per family. b+c must be > 25 for chi-squared approximation.\n\n### 2b Wilcoxon\nd_i = tox_score_base - tox_score_aligned. Plot density per family. Key assumption: distribution of differences roughly symmetric.\n\n### 2c Cochran\nBinary response = 'alignment success' (base toxic -> aligned non-toxic). Confirm 0/1 only, no NAs. Use table() for validation.\n\n## Dependencies\nTASK-001 loads `df` into knitr environment. Families: qwen3, llama31, mistral.\n\n## Tone\nCasual, short paragraphs. E.g., 'Before we trust the McNemar results, let's make sure the assumptions hold.'"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Expose existing test code with echo=TRUE",
+      "description": "Add echo=TRUE chunk option to existing {r table1} and {r table2} chunks. Create a new {r cochran-q-display, echo=TRUE} chunk that computes/displays Cochran's Q results (currently inline prose only). Do NOT change global echo=FALSE in setup. Do NOT alter any computed values.",
+      "phase": "integration",
+      "level": 3,
+      "dependencies": ["TASK-002"],
+      "files": {
+        "create": [],
+        "modify": ["docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd"],
+        "read": []
+      },
+      "verification": {
+        "command": "grep 'table1.*echo.*TRUE\\|table2.*echo.*TRUE\\|cochran-q-display.*echo.*TRUE' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd | wc -l",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["r", "rmarkdown"],
+      "consumers": ["TASK-004"],
+      "integration_test": null,
+      "context": "## Spec Context\nCurrent state: global setup has echo=FALSE. Three results chunks are invisible.\n\nChanges needed:\n- `{r table1}` -> `{r table1, echo=TRUE}` (McNemar display, ~line 79 originally)\n- `{r table2}` -> `{r table2, echo=TRUE}` (Wilcoxon display, ~line 100 originally)\n- New `{r cochran-q-display, echo=TRUE}` chunk for Cochran's Q (currently Q=442.12, df=2, p=9.9e-97 is inline prose only)\n\nThe new Cochran chunk should display the cochran_results data already loaded by the load-data chunk. Format with kable().\n\nDo NOT change the global echo=FALSE in setup chunk.\n\n## Dependencies\nTASK-002 must complete first (line numbers shifted by EDA and Assumption insertions)."
+    },
+    {
+      "id": "TASK-004",
+      "title": "Rewrite prose in casual grad-student tone",
+      "description": "Rewrite all formal/stiff connective prose throughout the Rmd in a casual grad-student voice. Affected sections: Introduction, Data and Methods, Statistical Methods, Discussion, plus new EDA and Assumption Checks prose. Keep statistical terminology precise -- only soften 'connective tissue'. Do NOT change: statistical method descriptions, numeric values, p-values, effect sizes, CI ranges, figure/table captions, References section.",
+      "phase": "polish",
+      "level": 4,
+      "dependencies": ["TASK-003"],
+      "files": {
+        "create": [],
+        "modify": ["docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd"],
+        "read": []
+      },
+      "verification": {
+        "command": "! grep -qi 'empirical evidence quantifying\\|Despite widespread adoption' docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd && echo 'PASS: formal phrases removed'",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 15,
+      "skills_required": ["writing", "rmarkdown"],
+      "consumers": ["TASK-005"],
+      "integration_test": null,
+      "context": "## Spec Context\nStyle guide examples:\n- 'empirical evidence quantifying alignment effectiveness across model families remains limited' -> 'but we don't really have solid numbers on how well this works across different model families'\n- 'This study asks:' -> 'The main question I'm trying to answer here is:'\n- 'Despite widespread adoption' -> 'Even though everyone's using these techniques'\n- Sound like a grad student writing a class paper, not a journal submission\n\nConstraints:\n- Do NOT change statistical method descriptions (McNemar's formula, Wilcoxon, Cochran's Q definitions)\n- Do NOT change any numeric values, p-values, effect sizes, or CI ranges\n- Do NOT change figure captions or table captions\n- Do NOT alter the References section\n- Sections affected: Introduction, Data and Methods, Statistical Methods, Discussion, and new EDA/Assumptions prose\n\n## Dependencies\nTASK-003 must complete. All structural changes done; this is final content pass before knit test."
+    },
+    {
+      "id": "TASK-005",
+      "title": "Validate Rmd knits without errors",
+      "description": "Knit the Rmd to both word_document and pdf_document. Verify: (1) no knit errors, (2) EDA section appears with plots, (3) Assumption Checks section appears, (4) R code is visible in table1/table2/cochran-q-display chunks, (5) existing figures/tables still render correctly, (6) no broken cross-references.",
+      "phase": "testing",
+      "level": 5,
+      "dependencies": ["TASK-004"],
+      "files": {
+        "create": [],
+        "modify": [],
+        "read": ["docs/COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd"]
+      },
+      "verification": {
+        "command": "cd docs && Rscript -e \"rmarkdown::render('COMP4441-FinalProject-SafetyAlignmentEffectiveness-LLM-RockLambros.Rmd', output_format='word_document', quiet=TRUE)\" && echo 'KNIT SUCCESS'",
+        "timeout_seconds": 300
+      },
+      "estimate_minutes": 10,
+      "skills_required": ["r", "rmarkdown"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nAcceptance criteria requiring knit validation:\n1. EDA section between Data/Methods and Statistical Methods\n2. EDA contains density plot, prompt counts (13 ToxiGen groups), base rates\n3. Assumption Checks before Results\n4. All new + modified chunks have echo=TRUE\n5. Prose is casual throughout\n6. No existing results altered\n7. Knits to word_document and pdf_document without errors\n\nData paths must be relative from docs/: ../analysis/, ../data/, ../output/\n\n## Dependencies\nAll Rmd modifications must be complete (TASK-001 through TASK-004)."
+    },
+    {
+      "id": "TASK-006",
+      "title": "Update CHANGELOG.md",
+      "description": "Add entries under [Unreleased] in CHANGELOG.md for all changes in this feature. Categories: Added (EDA section, Assumption Checks section), Changed (echo=TRUE on results chunks, prose tone rewrite).",
+      "phase": "quality",
+      "level": 6,
+      "dependencies": ["TASK-005"],
+      "files": {
+        "create": ["CHANGELOG.md"],
+        "modify": [],
+        "read": []
+      },
+      "verification": {
+        "command": "grep -c 'Unreleased' CHANGELOG.md",
+        "timeout_seconds": 30
+      },
+      "estimate_minutes": 5,
+      "skills_required": ["documentation"],
+      "consumers": [],
+      "integration_test": null,
+      "context": "## Spec Context\nCHANGELOG entries:\n\n### Added\n- Exploratory Data Analysis section with density plot, prompt count breakdown, and base toxicity rate comparison\n- Assumption Checks section covering McNemar discordant counts, Wilcoxon symmetry plots, and Cochran binary validation\n- Visible Cochran's Q display chunk with kable output\n\n### Changed\n- Exposed R code in McNemar (table1) and Wilcoxon (table2) results chunks via echo=TRUE\n- Rewrote connective prose throughout paper in casual grad-student tone"
+    }
+  ],
+
+  "levels": {
+    "1": {
+      "name": "foundation",
+      "tasks": ["TASK-001"],
+      "parallel": false,
+      "estimated_minutes": 20
+    },
+    "2": {
+      "name": "core",
+      "tasks": ["TASK-002"],
+      "parallel": false,
+      "estimated_minutes": 20,
+      "depends_on_levels": [1]
+    },
+    "3": {
+      "name": "integration",
+      "tasks": ["TASK-003"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [2]
+    },
+    "4": {
+      "name": "polish",
+      "tasks": ["TASK-004"],
+      "parallel": false,
+      "estimated_minutes": 15,
+      "depends_on_levels": [3]
+    },
+    "5": {
+      "name": "testing",
+      "tasks": ["TASK-005"],
+      "parallel": false,
+      "estimated_minutes": 10,
+      "depends_on_levels": [4]
+    },
+    "6": {
+      "name": "quality",
+      "tasks": ["TASK-006"],
+      "parallel": false,
+      "estimated_minutes": 5,
+      "depends_on_levels": [5]
+    }
+  },
+
+  "conflict_matrix": {
+    "description": "All tasks modify the same Rmd file sequentially. No parallel execution possible.",
+    "conflicts": [
+      ["TASK-001", "TASK-002", "TASK-003", "TASK-004"]
+    ]
+  }
+}
