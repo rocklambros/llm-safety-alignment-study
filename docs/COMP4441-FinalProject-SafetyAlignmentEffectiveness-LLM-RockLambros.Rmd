@@ -1,5 +1,5 @@
 ---
-title: "Safety Alignment Effectiveness in Large Language Models"
+title: "COMP 4441 Final Project Safety Alignment Effectiveness in Large Language Models"
 author: "Rock Lambros"
 date: "January 2026"
 output:
@@ -8,7 +8,7 @@ output:
   pdf_document:
     toc: false
     number_sections: true
-fontsize: 12pt
+fontsize: 10pt
 geometry: margin=1in
 linestretch: 2
 header-includes:
@@ -36,13 +36,13 @@ library(patchwork)
 
 # Introduction
 
-Large language models (LLMs) risk producing harmful content including hate speech, threats, and misinformation. Safety alignment techniques---RLHF, DPO, and SFT---aim to reduce toxic outputs while preserving utility. Despite widespread adoption, empirical evidence quantifying alignment effectiveness across model families remains limited.
+Large language models (LLMs) can spit out some pretty nasty stuff---hate speech, threats, misinformation, you name it. Safety alignment techniques like RLHF, DPO, and SFT are supposed to tame that behavior while keeping the models useful. Even though everyone's using these techniques, we don't really have solid numbers on how well this works across different model families.
 
-This study asks: **Does safety alignment significantly reduce toxic outputs, and does effectiveness differ across model families?** We compare base versus aligned models from three families (Qwen 3, Llama 3.1, Mistral) using 25,000 prompts from toxicity benchmarks, quantifying absolute risk reduction via paired statistical tests.
+The main question I'm trying to answer here is: **Does safety alignment significantly reduce toxic outputs, and does effectiveness differ across model families?** I compare base versus aligned models from three families (Qwen 3, Llama 3.1, Mistral) using 25,000 prompts from toxicity benchmarks, quantifying absolute risk reduction via paired statistical tests.
 
 # Data and Methods
 
-We sampled 25,000 prompts: 12,500 from RealToxicityPrompts (Gehman et al., 2020) stratified by toxicity tertiles, and 12,500 from ToxiGen (Hartvigsen et al., 2022) adversarial examples targeting 13 demographic groups.
+I sampled 25,000 prompts: 12,500 from RealToxicityPrompts (Gehman et al., 2020) stratified by toxicity tertiles, and 12,500 from ToxiGen (Hartvigsen et al., 2022) adversarial examples targeting 13 demographic groups.
 
 | Family | Base Model | Aligned Model | Parameters |
 |--------|------------|---------------|------------|
@@ -50,7 +50,84 @@ We sampled 25,000 prompts: 12,500 from RealToxicityPrompts (Gehman et al., 2020)
 | Llama 3.1 | meta-llama/Llama-3.1-8B | meta-llama/Llama-3.1-8B-Instruct | 8B |
 | Mistral | mistralai/Mistral-7B-v0.3 | mistralai/Mistral-7B-Instruct-v0.3 | 7B |
 
-Inference used deterministic decoding (temperature = 0.0, max 128 tokens). We scored 150,000 completions using Detoxify (Hanu & Unitary, 2020) with binary threshold 0.5. For robustness, 5,000 pairs per family were validated with OpenAI Moderation API.
+Inference used deterministic decoding (temperature = 0.0, max 128 tokens). I scored 150,000 completions using Detoxify (Hanu & Unitary, 2020) with binary threshold 0.5. For robustness, 5,000 pairs per family were validated with OpenAI Moderation API.
+
+# Exploratory Data Analysis
+
+Before jumping into the formal tests, let's get a feel for what the data actually look like.
+
+```{r load-eda}
+validated <- readRDS("../analysis/data_validated.rds")
+df <- validated$data
+
+prompt_meta <- read_csv("../data/processed/prompt_sample_25k.csv",
+                        show_col_types = FALSE)
+df <- df %>%
+  left_join(prompt_meta %>% select(prompt_id, source, target_group),
+            by = "prompt_id")
+
+data_summary <- tibble(
+  Metric = c("Total observations", "Unique prompts", "Model families",
+             "Toxicity scorer", "Binary threshold"),
+  Value = c(format(nrow(df), big.mark = ","),
+            format(n_distinct(df$prompt_id), big.mark = ","),
+            paste(sort(unique(df$family)), collapse = ", "),
+            unique(df$scorer),
+            as.character(unique(df$threshold)))
+)
+kable(data_summary, caption = "Dataset overview")
+```
+
+Here's how the raw toxicity scores from base models are distributed across the three families. Most completions cluster near zero, but there's a meaningful tail of high-toxicity outputs.
+
+```{r eda-density, fig.cap="Density of base model toxicity scores by family."}
+family_labels <- c(qwen3 = "Qwen 3 (8B)",
+                   llama31 = "Llama 3.1 (8B)",
+                   mistral = "Mistral (7B)")
+
+ggplot(df, aes(x = tox_score_base, fill = family)) +
+  geom_density(alpha = 0.4) +
+  scale_fill_manual(values = c(qwen3 = "#3498DB", llama31 = "#9B59B6",
+                                mistral = "#F39C12"),
+                    labels = family_labels) +
+  labs(x = "Detoxify Toxicity Score (Base Model)",
+       y = "Density", fill = "Family") +
+  theme_minimal()
+```
+
+Next, here's the breakdown of where the prompts come from. About half are from RealToxicityPrompts and half from ToxiGen, with ToxiGen spread across 13 demographic target groups.
+
+```{r eda-prompt-counts}
+source_counts <- df %>%
+  distinct(prompt_id, .keep_all = TRUE) %>%
+  count(source, name = "n_prompts")
+
+toxigen_groups <- df %>%
+  distinct(prompt_id, .keep_all = TRUE) %>%
+  filter(source == "toxigen") %>%
+  count(target_group, name = "n_prompts") %>%
+  arrange(desc(n_prompts))
+
+kable(source_counts, caption = "Prompt counts by dataset source")
+kable(toxigen_groups, caption = "ToxiGen prompts by demographic target group")
+```
+
+Finally, let's see how the three families compare on baseline toxicity rates before alignment. If they all start at roughly similar levels, it makes the cross-family comparison more meaningful.
+
+```{r eda-base-rates, fig.cap="Binary toxicity rate (threshold 0.5) for base models by family."}
+base_rates <- df %>%
+  group_by(family) %>%
+  summarise(toxic_rate = mean(tox_binary_base), .groups = "drop") %>%
+  mutate(family_label = family_labels[family])
+
+ggplot(base_rates, aes(x = family_label, y = toxic_rate, fill = family)) +
+  geom_col(width = 0.6) +
+  scale_fill_manual(values = c(qwen3 = "#3498DB", llama31 = "#9B59B6",
+                                mistral = "#F39C12"), guide = "none") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(x = "Model Family", y = "Base Toxicity Rate") +
+  theme_minimal()
+```
 
 # Statistical Methods
 
@@ -60,6 +137,68 @@ Inference used deterministic decoding (temperature = 0.0, max 128 tokens). We sc
 
 **Cochran's Q (Tertiary):** Tests heterogeneity of "alignment success" (base toxic $\to$ aligned non-toxic) across $k=3$ families. Q follows $\chi^2_{k-1}$ under $H_0$.
 
+# Assumption Checks
+
+Before we trust the test results, let's make sure the assumptions actually hold for our data.
+
+## McNemar's Test Assumptions
+
+McNemar's chi-squared approximation needs the total number of discordant pairs ($b + c$) to be reasonably large---the usual rule of thumb is at least 25. Let's check that.
+
+```{r assume-mcnemar}
+discordant <- df %>%
+  group_by(family) %>%
+  summarise(
+    b = sum(tox_binary_base == 1 & tox_binary_aligned == 0),
+    c = sum(tox_binary_base == 0 & tox_binary_aligned == 1),
+    b_plus_c = b + c,
+    .groups = "drop"
+  ) %>%
+  mutate(family_label = family_labels[family])
+
+kable(discordant %>% select(family_label, b, c, b_plus_c),
+      caption = "Discordant pair counts by family",
+      col.names = c("Family", "b (base toxic, aligned clean)",
+                     "c (base clean, aligned toxic)", "b + c"))
+```
+
+All three families have $b + c$ well above 25, so the chi-squared approximation is fine here.
+
+## Wilcoxon Signed-Rank Assumptions
+
+The main thing Wilcoxon needs is that the distribution of paired differences is roughly symmetric around its center. Let's plot the differences $d_i = \text{tox\_score\_base}_i - \text{tox\_score\_aligned}_i$ for each family and eyeball it.
+
+```{r assume-wilcoxon, fig.cap="Distribution of paired toxicity score differences by family."}
+df <- df %>%
+  mutate(d_i = tox_score_base - tox_score_aligned)
+
+ggplot(df, aes(x = d_i)) +
+  geom_density(fill = "steelblue", alpha = 0.5) +
+  facet_wrap(~ family, labeller = labeller(family = family_labels)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = expression(d[i] == tox_base - tox_aligned),
+       y = "Density") +
+  theme_minimal()
+```
+
+The distributions are heavily concentrated around zero with long tails---not perfectly symmetric, but with 25,000 pairs per family, Wilcoxon is robust enough to handle this.
+
+## Cochran's Q Assumptions
+
+Cochran's Q needs binary responses (strictly 0 or 1) and complete cases. Let's do a quick sanity check.
+
+```{r assume-cochran}
+alignment_success <- df %>%
+  mutate(success = as.integer(tox_binary_base == 1 & tox_binary_aligned == 0))
+
+cat("Binary coding validation:\n")
+print(table(alignment_success$success, useNA = "always"))
+cat("\nNA count:", sum(is.na(alignment_success$success)), "\n")
+cat("All values 0 or 1:", all(alignment_success$success %in% c(0, 1)), "\n")
+```
+
+Good---everything is strictly 0/1 with no missing values. Cochran's Q assumptions are satisfied.
+
 # Results
 
 ```{r load-data}
@@ -68,7 +207,7 @@ wilcoxon_results <- read_csv("../output/tables/wilcoxon_results.csv", show_col_t
 cochran_results <- read_csv("../output/tables/cochran_q_results.csv", show_col_types = FALSE)
 ```
 
-Base models produced toxic outputs at 18.9% versus 17.1% for aligned. Effects varied by family: Qwen 3 (18.2% $\to$ 12.1%), Llama 3.1 (19.1% $\to$ 18.3%), Mistral (19.6% $\to$ 21.0%, *increase*).
+Base models produced toxic outputs at 18.9% versus 17.1% for aligned. The effects varied quite a bit by family though: Qwen 3 (18.2% $\to$ 12.1%), Llama 3.1 (19.1% $\to$ 18.3%), Mistral (19.6% $\to$ 21.0%, *increase*).
 
 ```{r fig1, out.width="90%", fig.cap="Toxicity score distributions by model type."}
 knitr::include_graphics("../output/figures/fig1_toxicity_distributions.png")
@@ -95,7 +234,7 @@ knitr::include_graphics("../output/figures/fig2_toxicity_reduction.png")
 knitr::include_graphics("../output/figures/fig3_contingency_tables.png")
 ```
 
-**Wilcoxon Signed-Rank (Table 2):** Qwen 3 (Z = 42.87, r = 0.27, medium), Llama 3.1 (Z = 16.68, r = 0.11, small), Mistral (Z = 8.80, r = 0.06). Continuous scores show Mistral reduced average toxicity, but binary analysis reveals increased threshold-crossing.
+**Wilcoxon Signed-Rank (Table 2):** Qwen 3 (Z = 42.87, r = 0.27, medium), Llama 3.1 (Z = 16.68, r = 0.11, small), Mistral (Z = 8.80, r = 0.06). The continuous scores show Mistral actually reduced average toxicity a bit, but the binary analysis reveals it increased threshold-crossing---so the story depends on which metric you look at.
 
 ```{r table2}
 wilcoxon_display <- wilcoxon_results %>%
@@ -105,15 +244,24 @@ kable(wilcoxon_display, caption = "Wilcoxon Signed-Rank Test Results",
       col.names = c("Family", "Z", "p-value", "Pseudomedian", "r", "% Improved"), digits = c(0, 2, NA, 4, 3, 1))
 ```
 
-**Cochran's Q:** Significant heterogeneity ($Q$ = 442.12, $df$ = 2, $p$ = 9.9 $\times$ 10$^{-97}$). All families differ (p < 10$^{-7}$). Success rates: Qwen 3 (55.4%), Llama 3.1 (35.6%), Mistral (28.9%).
+**Cochran's Q:** There's significant heterogeneity across families ($Q$ = 442.12, $df$ = 2, $p$ = 9.9 $\times$ 10$^{-97}$). All families differ from each other (p < 10$^{-7}$). Success rates: Qwen 3 (55.4%), Llama 3.1 (35.6%), Mistral (28.9%).
 
-**Robustness (Figure 4):** Detoxify-OpenAI agreement: r = 0.98, $\kappa$ > 0.93. Both scorers agree on direction for all families.
+```{r cochran-q-display}
+cochran_display <- cochran_results %>%
+  select(test, q_statistic, df, p_value, n_subjects, n_treatments) %>%
+  mutate(p_value = sprintf("%.2e", p_value))
+kable(cochran_display, caption = "Cochran's Q Test for Heterogeneity Across Families",
+      col.names = c("Test", "Q", "df", "p-value", "N subjects", "k treatments"),
+      digits = c(0, 2, 0, NA, 0, 0))
+```
+
+**Robustness (Figure 4):** The Detoxify-OpenAI agreement is really strong: r = 0.98, $\kappa$ > 0.93. Both scorers agree on direction for all families, which is reassuring.
 
 ```{r fig4, out.width="90%", fig.cap="Scorer agreement between Detoxify and OpenAI Moderation."}
 knitr::include_graphics("../output/figures/fig4_scorer_agreement.png")
 ```
 
-**xFakeSci (Figure 5):** Exploratory linguistic pattern analysis using features from Hamed & Wu (2023).
+**xFakeSci (Figure 5):** As an exploratory side analysis, I looked at linguistic pattern features from Hamed & Wu (2023) to see if there were any interesting structural differences in the outputs.
 
 ```{r fig5, out.width="90%", fig.cap="xFakeSci ratio distributions."}
 knitr::include_graphics("../output/figures/fig5_xfakesci_ratio.png")
@@ -121,9 +269,9 @@ knitr::include_graphics("../output/figures/fig5_xfakesci_ratio.png")
 
 # Discussion
 
-Our findings challenge the assumption that alignment universally reduces toxicity. Results varied dramatically: Qwen 3 (ARR = 6.1%), Llama 3.1 (ARR = 0.8%), and surprisingly, Mistral (ARR = -1.4%, *increased* toxicity). The robustness analysis confirms these findings---Detoxify and OpenAI Moderation showed near-perfect agreement (r = 0.98, $\kappa$ > 0.93), with concordant conclusions for all families.
+So here's the big takeaway: alignment doesn't universally reduce toxicity, and the results vary a lot depending on which model family you're looking at. Qwen 3 did the best (ARR = 6.1%), Llama 3.1 barely moved the needle (ARR = 0.8%), and Mistral actually got *worse* after alignment (ARR = -1.4%). That last one is pretty concerning. The robustness analysis backs all of this up---Detoxify and OpenAI Moderation showed near-perfect agreement (r = 0.98, $\kappa$ > 0.93), with concordant conclusions for all families.
 
-Limitations include reliance on automated classifiers (though validated by inter-scorer agreement), deterministic decoding (temperature = 0) which may not generalize, and the conventional 0.5 toxicity threshold. The cross-family heterogeneity ($Q$ = 442.12, p < 10$^{-96}$) suggests alignment interacts with architecture in complex ways. The negative Mistral result is particularly concerning---some alignment procedures may inadvertently increase harmful outputs. Future work should investigate whether specific methods (RLHF, DPO, SFT) differentially affect toxicity.
+There are some caveats worth mentioning. I'm relying on automated classifiers (though the inter-scorer agreement helps there), the deterministic decoding (temperature = 0) might not generalize to real-world usage, and the 0.5 toxicity threshold is somewhat arbitrary. The cross-family heterogeneity ($Q$ = 442.12, p < 10$^{-96}$) is really striking though---it suggests alignment interacts with model architecture in ways we don't fully understand yet. The negative Mistral result is especially worrying because it means some alignment procedures might actually make things worse. Future work should dig into whether specific methods (RLHF, DPO, SFT) have different effects on toxicity.
 
 # References
 
