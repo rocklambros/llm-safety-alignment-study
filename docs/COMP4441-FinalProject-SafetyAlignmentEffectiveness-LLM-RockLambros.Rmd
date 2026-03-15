@@ -42,15 +42,43 @@ The main question I'm trying to answer here is: **Does safety alignment signific
 
 # Data and Methods
 
-I sampled 25,000 prompts: 12,500 from RealToxicityPrompts (Gehman et al., 2020) stratified by toxicity tertiles, and 12,500 from ToxiGen (Hartvigsen et al., 2022) adversarial examples targeting 13 demographic groups.
+## Prompt Sampling Strategy
 
-| Family | Base Model | Aligned Model | Parameters |
-|--------|------------|---------------|------------|
-| Qwen 3 | Qwen/Qwen3-8B-Base | Qwen/Qwen3-8B | 8B |
-| Llama 3.1 | meta-llama/Llama-3.1-8B | meta-llama/Llama-3.1-8B-Instruct | 8B |
-| Mistral | mistralai/Mistral-7B-v0.3 | mistralai/Mistral-7B-Instruct-v0.3 | 7B |
+I compiled 25,000 prompts from two toxicity benchmarks, split evenly between them. My goal was to capture both naturalistic toxic prompts and more challenging adversarial cases.
 
-Inference used deterministic decoding (temperature = 0.0, max 128 tokens). I scored 150,000 completions using Detoxify (Hanu & Unitary, 2020) with binary threshold 0.5. For robustness, 5,000 pairs per family were validated with OpenAI Moderation API.
+**RealToxicityPrompts (12,500 prompts):** This dataset (Gehman et al., 2020) contains approximately 100,000 sentence-level prompts scraped from OpenWebText, each with a pre-computed toxicity score from the Perspective API. Rather than sampling only high-toxicity prompts---which would bias results toward cases where alignment is most likely to succeed---I stratified by toxicity tertiles:
+
+- **Low tertile** (toxicity < 0.33): 4,167 prompts from relatively benign contexts where models might still produce toxic completions
+- **Medium tertile** (0.33 ≤ toxicity < 0.66): 4,167 prompts from ambiguous contexts that could elicit either toxic or clean outputs
+- **High tertile** (toxicity ≥ 0.66): 4,166 prompts from explicitly toxic or provocative contexts
+
+Within each tertile, I used simple random sampling without replacement. My reasoning is that safety alignment is most meaningfully tested at boundary cases---a model that only blocks obvious toxicity while failing on subtle cases has limited practical value.
+
+**ToxiGen (12,500 prompts):** This dataset (Hartvigsen et al., 2022) consists of machine-generated implicit hate speech, specifically designed to evade keyword-based detectors. I sampled from prompts targeting 13 demographic groups (race, religion, gender, sexuality, disability, etc.), drawing approximately 960 prompts per group to maintain balanced representation. My reasoning was that disparate alignment effectiveness across demographic groups would represent a significant fairness concern worth investigating.
+
+I chose a 50/50 split between datasets because RealToxicityPrompts tends toward overt toxic language, while ToxiGen's adversarial prompts often contain no obviously toxic words yet still carry harmful implications. Testing both should provide a more complete evaluation, though I acknowledge this ratio is somewhat arbitrary.
+
+## Model Selection
+
+| Family | Base Model | Aligned Model | Parameters | Alignment Method |
+|--------|------------|---------------|------------|-----------------|
+| Qwen 3 | Qwen/Qwen3-8B-Base | Qwen/Qwen3-8B | 8B | RLHF + SFT |
+| Llama 3.1 | meta-llama/Llama-3.1-8B | meta-llama/Llama-3.1-8B-Instruct | 8B | RLHF + SFT |
+| Mistral | mistralai/Mistral-7B-v0.3 | mistralai/Mistral-7B-Instruct-v0.3 | 7B | SFT |
+
+I selected these three families primarily for practical reasons: they are open-weight models with publicly available base and aligned versions, and they represent distinct lineages in the open LLM ecosystem. I kept parameter counts similar (7-8B range) to control for model capacity differences. One methodological note: Mistral uses only SFT for alignment, while Qwen and Llama use RLHF + SFT. This variation in alignment methods is a potential confound that may help explain some of the divergent results I observed.
+
+## Inference Configuration
+
+I used deterministic decoding (temperature = 0.0, top-p = 1.0) with a maximum output length of 128 tokens. My rationale was that stochastic sampling would introduce variance that complicates paired comparisons, and many production deployments use low temperatures. The limitation is that my results may not generalize to higher-temperature creative use cases.
+
+Each prompt was processed through all 6 models, yielding 150,000 total completions (25,000 prompts × 3 families × 2 versions per family).
+
+## Toxicity Scoring
+
+**Primary scorer (Detoxify):** I used the Detoxify library (Hanu & Unitary, 2020), which implements a fine-tuned BERT model trained on the Jigsaw Toxic Comment Classification dataset. It outputs a continuous toxicity probability in [0, 1]. Following Gehman et al.'s protocol in the original RealToxicityPrompts paper, I applied a binary threshold at 0.5---scores at or above this threshold are classified as "toxic."
+
+**Validation scorer (OpenAI Moderation API):** To address concerns about single-classifier bias, I validated a random subset of 5,000 prompt pairs per family (15,000 total) against OpenAI's Moderation API. This API uses a different model architecture and training data, so agreement between scorers would suggest the results are not artifacts of Detoxify's particular training. I computed Pearson correlation and Cohen's kappa to quantify inter-scorer agreement.
 
 # Exploratory Data Analysis
 
@@ -131,11 +159,78 @@ ggplot(base_rates, aes(x = family_label, y = toxic_rate, fill = family)) +
 
 # Statistical Methods
 
-**McNemar's Test (Primary):** For paired binary outcomes, we construct a $2 \times 2$ contingency table where cells $b$ (base toxic, aligned non-toxic) and $c$ (opposite) represent discordant pairs. The test evaluates $b \ne c$: $\chi^2 = (b - c)^2/(b + c)$. Effect size is Absolute Risk Reduction: ARR $= (b - c)/n$, with 95% CIs via bootstrap.
+I employed three complementary tests, each addressing a different aspect of the research question. McNemar's test serves as the primary analysis (does alignment change binary toxicity classification?), Wilcoxon signed-rank provides a secondary analysis of continuous score shifts, and Cochran's Q tests whether effectiveness differs across model families.
 
-**Wilcoxon Signed-Rank (Secondary):** Tests paired differences $d_i = \text{tox\_base}_i - \text{tox\_aligned}_i$ nonparametrically. Reports Z statistic, pseudomedian, and effect size $r = Z/\sqrt{n}$.
+## McNemar's Test (Primary Analysis)
 
-**Cochran's Q (Tertiary):** Tests heterogeneity of "alignment success" (base toxic $\to$ aligned non-toxic) across $k=3$ families. Q follows $\chi^2_{k-1}$ under $H_0$.
+McNemar's test is well-suited to this experimental design: paired data where each subject (prompt) is measured under two conditions (base and aligned model), with a binary outcome (toxic or non-toxic). The test assesses whether one condition systematically outperforms the other.
+
+**Null hypothesis:** The null hypothesis states that the probability of transitioning from toxic-to-clean equals the probability of transitioning from clean-to-toxic: $H_0$: $P(\text{base toxic}, \text{aligned clean}) = P(\text{base clean}, \text{aligned toxic})$. This is a test of marginal homogeneity.
+
+**Contingency table structure:** Each prompt falls into one of four cells in a $2 \times 2$ table:
+
+|                    | Aligned Non-toxic | Aligned Toxic |
+|--------------------|-------------------|---------------|
+| **Base Non-toxic** | $a$ (concordant)  | $c$ (discordant) |
+| **Base Toxic**     | $b$ (discordant)  | $d$ (concordant) |
+
+The concordant pairs ($a$ and $d$) are uninformative for comparison---both models agreed. The discordant pairs carry the relevant information: cell $b$ represents "alignment successes" (base was toxic, aligned was clean), while cell $c$ represents "alignment failures" (base was clean, aligned was toxic).
+
+**Test statistic:** The McNemar chi-squared statistic is:
+$$\chi^2 = \frac{(b - c)^2}{b + c}$$
+Under the null hypothesis, this follows a $\chi^2$ distribution with 1 degree of freedom. The literature recommends using an exact binomial test when total discordant pairs ($b + c$) falls below 25; with 25,000 observations per family, the chi-squared approximation is appropriate here.
+
+**Effect size (Absolute Risk Reduction):** While the p-value indicates statistical significance, ARR (Absolute Risk Reduction) quantifies practical magnitude:
+$$\text{ARR} = \frac{b - c}{n}$$
+where $n$ is the total number of observations. ARR represents the net proportion of prompts where alignment changed the classification. Positive ARR indicates alignment reduced toxicity; negative ARR indicates it increased toxicity.
+
+**Confidence intervals:** I computed 95% confidence intervals for ARR using the bootstrap percentile method with 10,000 resamples. For each iteration, I resampled prompt pairs with replacement and recalculated ARR, then took the 2.5th and 97.5th percentiles of the resulting distribution.
+
+## Wilcoxon Signed-Rank Test (Secondary Analysis)
+
+McNemar's test only captures whether scores crossed the 0.5 threshold, discarding information about within-category shifts. A model that reduces toxicity scores from 0.8 to 0.6 is still classified as toxic, yet clearly demonstrates some alignment effect. The Wilcoxon signed-rank test addresses this by analyzing the continuous score distributions.
+
+**Null hypothesis:** $H_0$: The distribution of paired differences $d_i = \text{tox\_base}_i - \text{tox\_aligned}_i$ is symmetric around zero---that is, alignment does not systematically shift scores in either direction.
+
+**Procedure:** The test proceeds as follows:
+1. Compute the difference $d_i$ for each prompt (base score minus aligned score)
+2. Discard zero differences (uninformative for the comparison)
+3. Rank the absolute values $|d_i|$ from smallest to largest
+4. Assign each rank a sign based on whether $d_i$ was positive or negative
+5. Compute separate rank sums: $W^+ = \sum_{\{d_i > 0\}} R_i$ (base more toxic) and $W^- = \sum_{\{d_i < 0\}} R_i$ (aligned more toxic)
+
+**Handling ties:** When multiple differences share the same absolute value, I applied the midrank method (averaging the ranks they would occupy). This is standard practice and the default in most statistical packages.
+
+**Normal approximation:** For large samples ($n > 20$), the test statistic is approximately normal:
+$$Z = \frac{W - \mu_W}{\sigma_W}$$
+where $\mu_W = n(n+1)/4$ and $\sigma_W = \sqrt{n(n+1)(2n+1)/24}$. With 25,000 observations per family, this approximation is highly accurate.
+
+**Effect size:** I report $r = Z/\sqrt{n}$, interpreted using Cohen's conventions: $r = 0.1$ (small), $r = 0.3$ (medium), $r = 0.5$ (large). While these thresholds are somewhat arbitrary, they provide useful context for interpreting magnitudes.
+
+**Pseudomedian:** I also report the pseudomedian (Hodges-Lehmann estimator), defined as the median of all pairwise averages $(d_i + d_j)/2$. This estimates the "typical" shift in toxicity and is more robust to outliers than the sample median.
+
+## Cochran's Q Test (Heterogeneity Analysis)
+
+While McNemar's test assesses whether each individual family improved, it does not test whether families differ from *each other*. Cochran's Q addresses this by extending McNemar's logic to compare more than two related treatments simultaneously.
+
+**Setup:** For each prompt, I defined a binary "alignment success" indicator:
+$$S_{ij} = \begin{cases} 1 & \text{if base model } j \text{ was toxic AND aligned model } j \text{ was non-toxic} \\ 0 & \text{otherwise} \end{cases}$$
+
+This produces a subjects × treatments matrix where each row (prompt) has three binary outcomes (one per family).
+
+**Null hypothesis:** $H_0$: The success probability is equal across all $k = 3$ model families---that is, Qwen, Llama, and Mistral are equally effective at reducing toxic outputs.
+
+**Test statistic:** The Q statistic is computed as:
+$$Q = \frac{(k-1)\left[k \sum_{j=1}^{k} G_j^2 - T^2\right]}{kT - \sum_{i=1}^{n} L_i^2}$$
+where $G_j = \sum_i S_{ij}$ (column totals, i.e., successes per family), $L_i = \sum_j S_{ij}$ (row totals, i.e., successes per prompt across families), and $T = \sum_{ij} S_{ij}$ (grand total of successes). I implemented this using `DescTools::CochranQTest()` in R.
+
+Under the null, $Q$ follows a $\chi^2$ distribution with $k - 1 = 2$ degrees of freedom.
+
+**Post-hoc pairwise comparisons:** A significant omnibus Q test indicates that families differ, but not which specific pairs. I therefore conducted pairwise McNemar tests (Qwen vs. Llama, Qwen vs. Mistral, Llama vs. Mistral) with Bonferroni correction to control the familywise error rate ($\alpha_{\text{adj}} = 0.05/3 \approx 0.0167$).
+
+## Multiple Comparison Considerations
+
+Running three separate McNemar tests (one per family) addressing the same research question raises multiple comparison concerns. However, I believe this is not problematic here for two reasons. First, I report effect sizes and confidence intervals rather than relying solely on p-values, allowing readers to assess practical significance directly. Second, all tests yielded p < 0.001, well below any reasonable corrected threshold (Bonferroni would require α = 0.0167). The conclusions are robust to any standard correction procedure.
 
 # Assumption Checks
 
