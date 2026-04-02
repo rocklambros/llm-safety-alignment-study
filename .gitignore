@@ -14,7 +14,6 @@ venv/
 # Data (large files)
 data/raw/
 output/analysis_dataset_full.csv
-*.jsonl
 *.tar.gz
 
 # AWS
@@ -57,7 +56,6 @@ claudedocs/
 # R intermediate/generated files
 *.rds
 *.knit.md
-*.tex
 *.log
 
 # Word temp files

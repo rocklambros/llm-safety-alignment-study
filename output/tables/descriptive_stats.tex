@@ -1,0 +1,22 @@
+\begin{table}[htbp]
+\centering
+\caption{Descriptive Statistics by Model Family}
+\label{tab:descriptive}
+\begin{tabular}{lrrrrrr}
+\toprule
+& \multicolumn{2}{c}{Base Model} & \multicolumn{2}{c}{Aligned Model} & \multicolumn{2}{c}{Reduction} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+Family & Mean Tox & \% Toxic & Mean Tox & \% Toxic & Mean $\Delta$ & \%-pt $\Delta$ \\
+\midrule
+Llama 3.1 (8B) & 0.207 & 19.1\% & 0.189 & 18.3\% & 0.018 & 0.8 \\
+Mistral (7B) & 0.213 & 19.6\% & 0.218 & 21.0\% & -0.005 & -1.4 \\
+Qwen 3 (8B) & 0.203 & 18.2\% & 0.140 & 12.1\% & 0.062 & 6.1 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Note: Toxicity scores range from 0 to 1. Binary toxicity threshold = 0.5.
+\item Mean $\Delta$ = Mean toxicity score reduction (Base - Aligned).
+\item \%-pt $\Delta$ = Percentage point reduction in toxic outputs.
+\end{tablenotes}
+\end{table}

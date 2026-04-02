@@ -1,0 +1,26 @@
+\begin{table}[htbp]
+\centering
+\caption{Summary of Statistical Tests for Safety Alignment Effectiveness}
+\label{tab:summary}
+\begin{tabular}{llrrrl}
+\toprule
+Family & Test & Statistic & p-value & Effect Size & 95\% CI \\
+\midrule
+Qwen 3 (8B) & McNemar's Exact & 653.59 & 1.04e-148*** & 0.061 (ARR) & [0.056, 0.065] \\
+Llama 3.1 (8B) & McNemar's Exact & 11.87 & 6.06e-04*** & 0.008 (ARR) & [0.003, 0.012] \\
+Mistral (7B) & McNemar's Exact & 37.28 & 1.10e-09*** & -0.014 (ARR) & [-0.018, -0.009] \\
+\midrule
+Qwen 3 (8B) & Wilcoxon Signed-Rank & 42.87 & 0.00e+00*** & 0.271 (r) & [0.006, Inf] \\
+Llama 3.1 (8B) & Wilcoxon Signed-Rank & 16.68 & 8.72e-63*** & 0.106 (r) & [0.001, Inf] \\
+Mistral (7B) & Wilcoxon Signed-Rank & 8.80 & 6.59e-19*** & 0.056 (r) & [0.000, Inf] \\
+\midrule
+All Families & Cochran's Q & 442.12 & 9.86e-97*** & 221.0619 (W) & NA \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Note: $^{*}p<0.05$; $^{**}p<0.01$; $^{***}p<0.001$.
+\item ARR = Absolute Risk Reduction; r = effect size correlation; W = Kendall's W.
+\item CI = Confidence Interval (bootstrap for ARR, Hodges-Lehmann for Wilcoxon).
+\end{tablenotes}
+\end{table}
