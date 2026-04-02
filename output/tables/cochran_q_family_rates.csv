@@ -1,0 +1,4 @@
+family,n,n_base_toxic,n_aligned_toxic,n_alignment_success,base_toxic_rate,aligned_toxic_rate,success_rate,success_given_base_toxic,family_label
+llama31,25000,4766,4571,1699,0.19064,0.18284,0.06796,0.35648342425514057,Llama 3.1 (8B)
+mistral,25000,4894,5238,1415,0.19576,0.20952,0.0566,0.2891295463833265,Mistral (7B)
+qwen3,25000,4543,3026,2519,0.18172,0.12104,0.10076,0.5544794188861986,Qwen 3 (8B)

@@ -1,0 +1,2 @@
+test,q_statistic,df,p_value,kendalls_w,n_subjects,n_treatments,significant,alpha
+Cochran's Q,442.1237668161435,2,9.863791343970973e-97,221.06188340807174,25000,3,TRUE,0.05

@@ -1,0 +1,4 @@
+family_1,family_2,family_1_label,family_2_label,cell_a,cell_b,cell_c,cell_d,chi_squared,p_value,p_value_bonferroni,significant_bonferroni
+qwen3,llama31,Qwen 3 (8B),Llama 3.1 (8B),21292,2009,1189,510,209.7439024390244,1.5622092061942633e-47,4.68662761858279e-47,TRUE
+qwen3,mistral,Qwen 3 (8B),Mistral (7B),21451,2134,1030,385,384.5161188369153,1.2934399577170527e-85,3.880319873151158e-85,TRUE
+llama31,mistral,Llama 3.1 (8B),Mistral (7B),22164,1421,1137,278,31.309225957779514,2.200315303944163e-8,6.60094591183249e-8,TRUE

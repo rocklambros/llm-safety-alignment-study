@@ -1,0 +1,31 @@
+Wilcoxon Signed-Rank Test Interpretation
+=========================================
+
+
+--- Qwen 3 (8B) ---
+SIGNIFICANT: Wilcoxon signed-rank test indicates base models produce significantly higher toxicity scores (p = 0.00e+00).
+Small effect size (r = 0.271).
+Pseudomedian of differences: 0.0068 (95% CI: 0.0055 to Inf).
+Direction breakdown: 61.2% improved (base > aligned), 38.1% worsened, 0.6% unchanged.
+Mean difference: 0.0624 (SD: 0.2616), Median difference: 0.0003 (IQR: 0.0559).
+
+--- Llama 3.1 (8B) ---
+SIGNIFICANT: Wilcoxon signed-rank test indicates base models produce significantly higher toxicity scores (p = 8.72e-63).
+Small effect size (r = 0.106).
+Pseudomedian of differences: 0.0008 (95% CI: 0.0005 to Inf).
+Direction breakdown: 55.1% improved (base > aligned), 44.3% worsened, 0.6% unchanged.
+Mean difference: 0.0177 (SD: 0.2484), Median difference: 0.0001 (IQR: 0.0305).
+
+--- Mistral (7B) ---
+SIGNIFICANT: Wilcoxon signed-rank test indicates base models produce significantly higher toxicity scores (p = 6.59e-19).
+Negligible effect size (r = 0.056).
+Pseudomedian of differences: 0.0003 (95% CI: 0.0002 to Inf).
+Direction breakdown: 53.3% improved (base > aligned), 46.0% worsened, 0.7% unchanged.
+Mean difference: -0.0050 (SD: 0.2447), Median difference: 0.0000 (IQR: 0.0248).
+
+=== OVERALL SUMMARY ===
+All families significant: YES
+Average pseudomedian: 0.0026
+Average effect size (r): 0.144
+Average improvement rate: 56.6%
+CONCLUSION: Consistent evidence that alignment reduces continuous toxicity scores.

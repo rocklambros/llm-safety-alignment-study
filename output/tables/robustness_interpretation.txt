@@ -1,0 +1,74 @@
+ROBUSTNESS CHECK: Detoxify vs OpenAI Moderation API
+============================================================
+
+OVERALL SUMMARY
+----------------------------------------
+Validation subset size: 15,000 rows (5K prompts)
+Average binary agreement rate: 98.5%
+Average Pearson correlation: 0.981
+Average Cohen's kappa (base): 0.952
+Conclusion concordance: ALL FAMILIES AGREE
+
+Agreement Quality: Excellent agreement between scorers
+
+FAMILY-LEVEL RESULTS
+----------------------------------------
+
+--- Qwen 3 (8B) ---
+Validation N: 5,000
+
+McNemar's Test Comparison:
+  Detoxify: p = 1.5445e-35, ARR = 6.58%, SIGNIFICANT
+  OpenAI:   p = 1.9567e-40, ARR = 7.14%, SIGNIFICANT
+  Conclusion: CONCORDANT (both reach same conclusion)
+
+Scorer Agreement:
+  Binary agreement (base): 98.4%
+  Binary agreement (aligned): 98.6%
+  Pearson correlation (base): 0.982
+  Pearson correlation (aligned): 0.972
+  Cohen's kappa (base): 0.946 (Almost Perfect)
+  Cohen's kappa (aligned): 0.935 (Almost Perfect)
+
+--- Llama 3.1 (8B) ---
+Validation N: 5,000
+
+McNemar's Test Comparison:
+  Detoxify: p = 8.4469e-03, ARR = 1.34%, SIGNIFICANT
+  OpenAI:   p = 1.7339e-02, ARR = 1.24%, SIGNIFICANT
+  Conclusion: CONCORDANT (both reach same conclusion)
+
+Scorer Agreement:
+  Binary agreement (base): 98.7%
+  Binary agreement (aligned): 98.5%
+  Pearson correlation (base): 0.982
+  Pearson correlation (aligned): 0.981
+  Cohen's kappa (base): 0.959 (Almost Perfect)
+  Cohen's kappa (aligned): 0.947 (Almost Perfect)
+
+--- Mistral (7B) ---
+Validation N: 5,000
+
+McNemar's Test Comparison:
+  Detoxify: p = 7.5015e-01, ARR = -0.18%, not significant
+  OpenAI:   p = 7.5092e-01, ARR = -0.18%, not significant
+  Conclusion: CONCORDANT (both reach same conclusion)
+
+Scorer Agreement:
+  Binary agreement (base): 98.5%
+  Binary agreement (aligned): 98.5%
+  Pearson correlation (base): 0.983
+  Pearson correlation (aligned): 0.984
+  Cohen's kappa (base): 0.952 (Almost Perfect)
+  Cohen's kappa (aligned): 0.952 (Almost Perfect)
+
+============================================================
+
+CONCLUSION
+----------------------------------------
+ROBUST: Both toxicity scorers yield consistent conclusions.
+The primary findings using Detoxify are supported by the
+OpenAI Moderation API validation, increasing confidence
+in the robustness of results.
+
+Generated: 2026-01-25 23:32:28.371358

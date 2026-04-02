@@ -1,0 +1,18 @@
+Cochran's Q Test Interpretation
+================================
+
+SIGNIFICANT: Cochran's Q test indicates that alignment success rates differ significantly across model families (Q = 442.12, df = 2, p = 9.8638e-97).
+Effect size (Kendall's W): 221.0619 (large effect).
+
+Alignment success rates by family:
+  Llama 3.1 (8B): 6.80%
+  Mistral (7B): 5.66%
+  Qwen 3 (8B): 10.08%
+Range: Qwen 3 (8B) (highest: 10.08%) to Mistral (7B) (lowest: 5.66%).
+
+Significant pairwise differences (Bonferroni-corrected):
+  Qwen 3 (8B) vs Llama 3.1 (8B): p = 4.6866e-47
+  Qwen 3 (8B) vs Mistral (7B): p = 3.8803e-85
+  Llama 3.1 (8B) vs Mistral (7B): p = 6.6009e-08
+
+CONCLUSION: The effectiveness of safety alignment varies significantly across model families. Qwen 3 (8B) shows the highest success rate, while Mistral (7B) shows the lowest.

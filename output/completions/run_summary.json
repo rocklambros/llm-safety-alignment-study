@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-01-25T17:53:00.270767+00:00",
+  "total_duration_seconds": 96369.04672400301,
+  "dry_run": false,
+  "config": {
+    "max_tokens": 128,
+    "temperature": 0.0,
+    "checkpoint_interval": 500,
+    "region": "us-east-1"
+  },
+  "families": {
+    "llama31": {
+      "family": "llama31",
+      "total_prompts": 25000,
+      "completed": 25000,
+      "errors": 0,
+      "error_rate": 0.0,
+      "avg_base_latency_ms": 1266.9479418480305,
+      "avg_aligned_latency_ms": 1274.4692757107075,
+      "total_duration_seconds": 63593.805995135
+    },
+    "mistral": {
+      "family": "mistral",
+      "total_prompts": 25000,
+      "completed": 25000,
+      "errors": 0,
+      "error_rate": 0.0,
+      "avg_base_latency_ms": 1836.2799488012954,
+      "avg_aligned_latency_ms": 1804.7743884203267,
+      "total_duration_seconds": 91082.057371437
+    },
+    "qwen3": {
+      "family": "qwen3",
+      "total_prompts": 25000,
+      "completed": 25000,
+      "errors": 0,
+      "error_rate": 0.0,
+      "avg_base_latency_ms": 1912.8156100090757,
+      "avg_aligned_latency_ms": 1939.958416328268,
+      "total_duration_seconds": 96369.002350878
+    }
+  }
+}

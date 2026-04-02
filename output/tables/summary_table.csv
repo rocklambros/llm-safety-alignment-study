@@ -1,0 +1,8 @@
+Family,Test,Statistic,Statistic_Name,P_Value,Stars,Effect_Size,Effect_Name,CI_95,N,P_Stars,Effect_Full
+Qwen 3 (8B),McNemar's Exact,653.59,chi-sq,1.04e-148,***,0.061,ARR,"[0.056, 0.065]","25,000",1.04e-148***,0.061 (ARR)
+Llama 3.1 (8B),McNemar's Exact,11.87,chi-sq,6.06e-04,***,0.008,ARR,"[0.003, 0.012]","25,000",6.06e-04***,0.008 (ARR)
+Mistral (7B),McNemar's Exact,37.28,chi-sq,1.10e-09,***,-0.014,ARR,"[-0.018, -0.009]","25,000",1.10e-09***,-0.014 (ARR)
+Qwen 3 (8B),Wilcoxon Signed-Rank,42.87,Z,0.00e+00,***,0.271,r,"[0.006, Inf]","25,000",0.00e+00***,0.271 (r)
+Llama 3.1 (8B),Wilcoxon Signed-Rank,16.68,Z,8.72e-63,***,0.106,r,"[0.001, Inf]","25,000",8.72e-63***,0.106 (r)
+Mistral (7B),Wilcoxon Signed-Rank,8.80,Z,6.59e-19,***,0.056,r,"[0.000, Inf]","25,000",6.59e-19***,0.056 (r)
+All Families,Cochran's Q,442.12,Q,9.86e-97,***,221.0619,W,NA,"25,000",9.86e-97***,221.0619 (W)
